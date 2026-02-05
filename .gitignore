@@ -1,3 +1,3 @@
 .venv/
 .env
-character_config.yaml
+chat_history.json

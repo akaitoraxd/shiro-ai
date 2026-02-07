@@ -3,12 +3,14 @@ import os
 import json
 from openai import OpenAI
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 # Load character config from YAML file
 with open("character_config.yaml", "r") as file:
     char_config = yaml.safe_load(file)
 
-client = OpenAI(api_key=char_config.get('OPEN_AI_KEY'))
+client = OpenAI(api_key=os.getenv("OPEN_AI_KEY"))
 
 # Constant parameters
 MAX_MESSAGE = 20
@@ -36,17 +38,19 @@ def load_memory():
                 return SYSTEM_PROMPT.copy()
         return SYSTEM_PROMPT.copy()
 
-
+# Save memory to file
 def save_memory(history):
     with open(HISTORY_FILE, "w") as file:
         json.dump(history, file, indent=2)
 
+# Trim memory so the file and tokens doesn't explode
 def trim_memory(messages):
     system = messages[0]
     rest = messages[1:]
     rest = rest[-MAX_MESSAGE:]
     return [system] + rest
 
+# Sending prompt to Shiro and getting response
 def get_shiro_response(messages):
     response = client.responses.create(
         model=MODEL,
@@ -56,10 +60,11 @@ def get_shiro_response(messages):
     )
     return response
 
-
+# Handle literraly everything
 def llm_response(user_input):
     messages = load_memory()
 
+    # So she can tell time lmao (To be honest I don't know why I make this)
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     user_input_time = f"[User input received at {current_time}] {user_input}"
 
@@ -78,13 +83,7 @@ def llm_response(user_input):
     save_memory(messages)
     return shiro_response.output_text
 
-def get_time():
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return {
-        "role": "system",
-        "content": [{"type": "input_text", "text": f"The current time is {current_time}"}]
-    }
-
+# Main loop
 while True:
     user_input = input("You: ")
     if user_input.lower() in ["exit", "quit"]:
